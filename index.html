@@ -4,112 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Time Tracker</title>
-    <link rel="icon" href="favicon.ico">
-    <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Inter font -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
-    <!-- Custom styles -->
-    <link rel="stylesheet" href="css/styles.css">
-    <!-- Tailwind Config -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
-                    colors: {
-                        primary: '#3B82F6',
-                        success: '#10B981',
-                        warning: '#F59E0B',
-                        danger: '#EF4444',
-                        dark: '#1F2937',
-                        light: '#F3F4F6',
-                    }
-                }
-            }
-        }
-    </script>
+    <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-white text-dark min-h-screen">
-    <div class="container mx-auto px-4 py-6 max-w-5xl">
-        <!-- Header Section -->
-        <header class="mb-6">
-            <h1 class="text-3xl font-bold text-center mb-2">Time Tracker</h1>
-            <div class="flex justify-between items-center">
-                <div id="current-date" class="text-lg font-medium"></div>
-                <div id="current-time" class="text-lg font-medium"></div>
-            </div>
+<body class="bg-gray-50 text-gray-800 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-bold">Time Tracker</h1>
+            <button id="exportBtn" class="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded">Export Data</button>
         </header>
-
-        <!-- Control Section -->
-        <section class="mb-8 flex flex-col gap-4 p-4 bg-light rounded-lg">
-            <div id="action-controls" class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                <button id="action-button" class="bg-primary hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-md transition-colors">
-                    Start Action
-                </button>
-                <div id="activity-input-container" class="hidden flex-grow">
-                    <input type="text" id="activity-title" placeholder="Unnamed Activity" 
-                        class="w-full border-gray-300 border rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
-                </div>
-                <div id="elapsed-time-container" class="hidden">
-                    <span class="font-mono text-lg" id="elapsed-time">00:00:00</span>
-                </div>
-            </div>
-            <div class="flex justify-between items-center">
-                <div class="text-sm text-gray-500" id="tracker-status">No active tracking</div>
-                <div class="relative">
-                    <button id="export-button" class="text-primary hover:text-blue-700 font-medium">
-                        Export Data
-                    </button>
-                    <div id="export-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
-                        <div class="py-1">
-                            <button id="export-json" class="block px-4 py-2 text-sm text-gray-700 hover:bg-light w-full text-left">Export as JSON</button>
-                            <button id="export-csv" class="block px-4 py-2 text-sm text-gray-700 hover:bg-light w-full text-left">Export as CSV</button>
+        
+        <main>
+            <div class="mb-6">
+                <div id="currentAction" class="hidden mb-4 p-4 border-l-4 border-green-500 bg-green-50 rounded">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3>Current action:</h3>
+                            <input type="text" id="currentActionTitle" class="text-xl mt-1 px-2 py-1 border rounded" value="New Action">
+                        </div>
+                        <div>
+                            <p id="currentActionTime" class="text-sm text-gray-600">Started at 00:00</p>
+                            <p id="currentActionDuration" class="text-sm font-mono">00:00:00</p>
                         </div>
                     </div>
                 </div>
+                
+                <button id="actionBtn" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded">
+                    Start Action
+                </button>
             </div>
-        </section>
-
-        <!-- Timeline Section -->
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold mb-4">Today's Timeline</h2>
-            <div id="timeline-container" class="bg-light rounded-lg p-2 overflow-x-auto">
-                <div id="timeline" class="relative h-[600px] border-l-2 border-gray-300 ml-6 pl-8">
-                    <!-- Time markers and activities will be dynamically generated here -->
+            
+            <div class="flex justify-between items-center mb-3">
+                <button id="prevDate" class="text-blue-600 hover:text-blue-800">
+                    <span class="mr-1">←</span>Previous Day
+                </button>
+                <h2 id="dateDisplay" class="text-xl font-semibold">Today's Timeline</h2>
+                <button id="nextDate" class="text-blue-600 hover:text-blue-800">
+                    Next Day<span class="ml-1">→</span>
+                </button>
+            </div>
+            
+            <div id="timeline" class="space-y-3">
+                <!-- Actions will be inserted here by JavaScript -->
+                <div id="emptyState" class="text-center py-10 text-gray-500">
+                    No actions recorded for this day
                 </div>
             </div>
-        </section>
-
-        <!-- Activity List Section -->
-        <section>
-            <h2 class="text-xl font-semibold mb-4">Today's Activities</h2>
-            <div class="overflow-x-auto">
-                <table class="w-full table-auto border-collapse">
-                    <thead>
-                        <tr class="bg-light">
-                            <th class="text-left py-3 px-4 font-semibold">Activity</th>
-                            <th class="text-left py-3 px-4 font-semibold">Start Time</th>
-                            <th class="text-left py-3 px-4 font-semibold">End Time</th>
-                            <th class="text-left py-3 px-4 font-semibold">Duration</th>
-                            <th class="text-left py-3 px-4 font-semibold">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="activity-list">
-                        <!-- Activities will be dynamically generated here -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
+        </main>
     </div>
 
-    <!-- Scripts -->
-    <script src="js/storage.js"></script>
-    <script src="js/timeTracker.js"></script>
-    <script src="js/timeline.js"></script>
-    <script src="js/export.js"></script>
-    <script src="js/app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html> 

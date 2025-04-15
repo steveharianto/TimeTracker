@@ -6,48 +6,61 @@
     <title>Time Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-gray-50 text-gray-800 min-h-screen">
-    <div class="container mx-auto px-4 py-8 max-w-3xl">
-        <header class="flex justify-between items-center mb-8">
-            <h1 class="text-2xl font-bold">Time Tracker</h1>
-            <button id="exportBtn" class="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded">Export Data</button>
+<body>
+    <div class="container mx-auto px-6 py-10 max-w-3xl">
+        <header class="flex justify-between items-center">
+            <h1 class="text-xl font-medium">Time Tracker</h1>
+            <div class="flex gap-3">
+                <button id="importBtn" class="btn-action">
+                    <i class="fas fa-upload mr-1 text-xs"></i>
+                    Import
+                </button>
+                <button id="exportBtn" class="btn-action">
+                    <i class="fas fa-download mr-1 text-xs"></i>
+                    Export
+                </button>
+                <input type="file" id="importFile" accept=".json" class="hidden">
+            </div>
         </header>
         
         <main>
-            <div class="mb-6">
-                <div id="currentAction" class="hidden mb-4 p-4 border-l-4 border-green-500 bg-green-50 rounded">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <h3>Current action:</h3>
-                            <input type="text" id="currentActionTitle" class="text-xl mt-1 px-2 py-1 border rounded" value="New Action">
+            <div id="actionControls">
+                <div id="currentAction" class="hidden py-5 px-5">
+                    <div class="flex flex-col md:flex-row justify-between items-start gap-4">
+                        <div class="flex-1">
+                            <label for="currentActionTitle" class="text-xs text-gray-500 mb-1 block">Current activity</label>
+                            <input type="text" id="currentActionTitle" class="text-lg" placeholder="What are you doing?" value="New Action">
                         </div>
-                        <div>
-                            <p id="currentActionTime" class="text-sm text-gray-600">Started at 00:00</p>
-                            <p id="currentActionDuration" class="text-sm font-mono">00:00:00</p>
+                        <div class="text-right">
+                            <p id="currentActionTime" class="text-xs"></p>
+                            <p id="currentActionDuration"></p>
                         </div>
                     </div>
                 </div>
                 
-                <button id="actionBtn" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded">
-                    Start Action
+                <button id="actionBtn" class="w-full mb-8 text-white bg-blue-600">
+                    Start Activity
                 </button>
             </div>
             
-            <div class="flex justify-between items-center mb-3">
-                <button id="prevDate" class="text-blue-600 hover:text-blue-800">
-                    <span class="mr-1">←</span>Previous Day
+            <div class="flex justify-between items-center mb-5">
+                <button id="prevDate" class="flex items-center">
+                    <i class="fas fa-chevron-left mr-1 text-xs"></i>
+                    Previous
                 </button>
-                <h2 id="dateDisplay" class="text-xl font-semibold">Today's Timeline</h2>
-                <button id="nextDate" class="text-blue-600 hover:text-blue-800">
-                    Next Day<span class="ml-1">→</span>
+                <h2 id="dateDisplay" class="text-center"></h2>
+                <button id="nextDate" class="flex items-center">
+                    Next
+                    <i class="fas fa-chevron-right ml-1 text-xs"></i>
                 </button>
             </div>
             
             <div id="timeline" class="space-y-3">
-                <!-- Actions will be inserted here by JavaScript -->
-                <div id="emptyState" class="text-center py-10 text-gray-500">
-                    No actions recorded for this day
+                <div id="emptyState" class="text-center py-8">
+                    <i class="far fa-calendar text-3xl"></i>
+                    <p class="mt-2">No activities recorded for this day</p>
                 </div>
             </div>
         </main>

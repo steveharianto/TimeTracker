@@ -12,6 +12,8 @@
   --radius-standard: 8px;
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.03);
   --transition-standard: all 0.2s ease;
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --calendar-day-size: 36px;
 }
 
 body {
@@ -62,11 +64,189 @@ button,
   color: var(--color-accent-hover);
 }
 
+.btn-action-small {
+  background-color: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-standard);
+}
+
+.btn-action-small:hover {
+  background-color: #f5f5f5;
+}
+
 /* Header styling - more minimal */
 header {
   padding-bottom: 12px;
   margin-bottom: 32px;
   border-bottom: 1px solid var(--color-border);
+}
+
+/* Calendar styling */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+/* Calendar animations */
+#calendarView {
+  transform-origin: top center;
+  transition: var(--transition-smooth);
+  transform: translateY(-20px);
+  opacity: 0;
+  overflow: hidden;
+  max-height: 0;
+}
+
+#calendarView.visible {
+  transform: translateY(0);
+  opacity: 1;
+  max-height: 500px; /* Arbitrary large value */
+}
+
+#calendarView.hidden {
+  transform: translateY(-20px);
+  opacity: 0;
+}
+
+#calendarView:not(.hidden) {
+  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.calendar-weekday {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.calendar-day {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  transition: var(--transition-smooth);
+  width: 100%;
+  padding-top: 100%; /* This creates a perfect square */
+}
+
+.calendar-day-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-standard);
+}
+
+.calendar-day-content::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: var(--transition-smooth);
+  z-index: -1;
+}
+
+.calendar-day.selected .calendar-day-content::before {
+  background-color: var(--color-accent);
+  animation: selectDay 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes selectDay {
+  0% { transform: translate(-50%, -50%) scale(0.7); }
+  50% { transform: translate(-50%, -50%) scale(1.1); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+.calendar-day.today {
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.calendar-day.selected {
+  color: white;
+  font-weight: 500;
+}
+
+.calendar-day.other-month {
+  color: var(--color-text-secondary);
+  opacity: 0.5;
+}
+
+.calendar-day:hover:not(.selected) .calendar-day-content::before {
+  background-color: #f5f5f5;
+}
+
+/* Activity indicators with variable size based on activity volume */
+.calendar-day .activity-indicator {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+  transition: var(--transition-smooth);
+}
+
+.calendar-day .activity-indicator span {
+  height: 4px;
+  background-color: currentColor;
+  border-radius: 2px;
+  opacity: 0.6;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.calendar-day:hover .activity-indicator span {
+  transform: scaleY(1.5);
+}
+
+/* Activity level indicators */
+.calendar-day .activity-indicator.level-1 span {
+  width: 4px;
+}
+
+.calendar-day .activity-indicator.level-2 span:first-child,
+.calendar-day .activity-indicator.level-2 span:last-child {
+  width: 4px;
+}
+
+.calendar-day .activity-indicator.level-2 span:nth-child(2) {
+  width: 8px;
+}
+
+.calendar-day .activity-indicator.level-3 span {
+  width: 8px;
+}
+
+.calendar-day.selected .activity-indicator span {
+  background-color: white;
+  opacity: 0.8;
 }
 
 /* Current action card */
@@ -76,8 +256,23 @@ header {
   border-left: 3px solid var(--color-success);
   border-radius: var(--radius-standard);
   box-shadow: var(--shadow-card);
-  transition: var(--transition-standard);
+  transition: var(--transition-smooth);
   margin-bottom: 24px;
+  animation: slideInDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#currentAction.hidden {
+  transform: translateY(-20px);
+  opacity: 0;
+  max-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+@keyframes slideInDown {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 #currentActionTitle {
@@ -109,12 +304,22 @@ header {
 /* Action button */
 #actionBtn {
   border-radius: var(--radius-standard);
-  transition: var(--transition-standard);
+  transition: var(--transition-smooth);
   font-weight: 500;
   letter-spacing: 0.01em;
   border: none;
   padding: 14px 0;
   background-color: var(--color-accent);
+  transform: translateZ(0);
+}
+
+#actionBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#actionBtn:active {
+  transform: translateY(0);
 }
 
 #actionBtn.bg-red-500 {
@@ -156,10 +361,21 @@ header {
   border-radius: var(--radius-standard);
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-card);
-  transition: var(--transition-standard);
+  transition: var(--transition-smooth);
   padding: 14px 16px;
   margin-bottom: 10px;
   position: relative;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.action-item.fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .action-item:hover {
@@ -240,9 +456,40 @@ header {
   animation: fadeIn 0.25s ease forwards;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+.fade-out {
+  animation: fadeOut 0.25s ease forwards;
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(10px); }
+}
+
+.slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.slide-in-left {
+  animation: slideInLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Day transition animations */
+.day-transition-enter {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.day-transition-exit {
+  animation: fadeOut 0.3s ease forwards;
 }
 
 /* Export and Import buttons - more visible */
@@ -311,5 +558,14 @@ header {
   
   #currentAction {
     padding: 14px;
+  }
+  
+  :root {
+    --calendar-day-size: 32px;
+  }
+  
+  .calendar-day-content::before {
+    width: 28px;
+    height: 28px;
   }
 } 

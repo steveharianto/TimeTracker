@@ -14,12 +14,22 @@ const nextDateBtn = document.getElementById('nextDate');
 const dateDisplay = document.getElementById('dateDisplay');
 const actionControls = document.getElementById('actionControls');
 
+// Calendar elements
+const calendarToggle = document.getElementById('calendarToggle');
+const calendarView = document.getElementById('calendarView');
+const prevMonthBtn = document.getElementById('prevMonth');
+const nextMonthBtn = document.getElementById('nextMonth');
+const currentMonthDisplay = document.getElementById('currentMonth');
+const calendarGrid = document.querySelector('.calendar-grid');
+
 // App State
 let state = {
   actions: [],
   currentAction: null,
   timerInterval: null,
-  selectedDate: new Date().toISOString().split('T')[0] // Default to today
+  selectedDate: new Date().toISOString().split('T')[0], // Default to today
+  calendarDate: new Date(), // Date to display in calendar
+  showCalendar: false // Calendar visibility toggle
 };
 
 // Initialize the app
@@ -40,6 +50,11 @@ function init() {
   prevDateBtn.addEventListener('click', navigateToPreviousDay);
   nextDateBtn.addEventListener('click', navigateToNextDay);
   currentActionTitle.addEventListener('focus', () => currentActionTitle.select());
+  
+  // Calendar event listeners
+  calendarToggle.addEventListener('click', toggleCalendar);
+  prevMonthBtn.addEventListener('click', () => navigateCalendar(-1));
+  nextMonthBtn.addEventListener('click', () => navigateCalendar(1));
   
   // Add keyboard shortcuts for better UX
   document.addEventListener('keydown', (e) => {
@@ -66,6 +81,226 @@ function init() {
   
   // Show a focused UI
   timeline.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+}
+
+// Toggle calendar visibility with animation
+function toggleCalendar() {
+  state.showCalendar = !state.showCalendar;
+  
+  if (state.showCalendar) {
+    // Show calendar with animation
+    renderCalendar();
+    calendarView.classList.remove('hidden');
+    calendarView.style.display = 'block';
+    setTimeout(() => {
+      calendarView.classList.add('visible');
+    }, 10);
+  } else {
+    // Hide calendar with animation
+    calendarView.classList.remove('visible');
+    calendarView.classList.add('hidden');
+    setTimeout(() => {
+      calendarView.style.display = 'none';
+    }, 300);
+  }
+}
+
+// Navigate calendar month with animation
+function navigateCalendar(monthOffset) {
+  // Apply exit animation to current month
+  calendarGrid.classList.add(monthOffset > 0 ? 'slide-in-right' : 'slide-in-left');
+  
+  // After animation completes, update the date and render
+  setTimeout(() => {
+    const newDate = new Date(state.calendarDate);
+    newDate.setMonth(newDate.getMonth() + monthOffset);
+    state.calendarDate = newDate;
+    renderCalendar();
+    
+    // Reset animation classes
+    calendarGrid.classList.remove('slide-in-right', 'slide-in-left');
+  }, 200);
+}
+
+// Render calendar for current month
+function renderCalendar() {
+  // Update month display
+  const month = state.calendarDate.toLocaleString('default', { month: 'long' });
+  const year = state.calendarDate.getFullYear();
+  currentMonthDisplay.textContent = `${month} ${year}`;
+  
+  // Remove existing calendar days
+  const calendarDays = document.querySelectorAll('.calendar-day');
+  calendarDays.forEach(day => day.remove());
+  
+  // Get dates for calendar grid
+  const calendarDates = getCalendarDates(state.calendarDate);
+  
+  // Get days with activities and their activity counts
+  const activitiesPerDay = getActivitiesPerDay();
+  
+  // Create and append calendar day elements
+  calendarDates.forEach(date => {
+    const dayElement = document.createElement('div');
+    dayElement.classList.add('calendar-day');
+    
+    // Create inner content div for proper centering
+    const dayContent = document.createElement('div');
+    dayContent.classList.add('calendar-day-content');
+    
+    // Add date as number
+    dayContent.textContent = date.getDate();
+    dayElement.appendChild(dayContent);
+    
+    // Add appropriate classes
+    if (date.getMonth() !== state.calendarDate.getMonth()) {
+      dayElement.classList.add('other-month');
+    }
+    
+    // Check if this is today
+    const dateStr = date.toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (dateStr === today) {
+      dayElement.classList.add('today');
+    }
+    
+    // Check if this is the selected date
+    if (dateStr === state.selectedDate) {
+      dayElement.classList.add('selected');
+    }
+    
+    // Create activity indicators based on activity count
+    if (activitiesPerDay.has(dateStr)) {
+      const activityCount = activitiesPerDay.get(dateStr);
+      const indicatorContainer = document.createElement('div');
+      indicatorContainer.classList.add('activity-indicator');
+      
+      // Determine activity level (1-3) based on count
+      let level = 1;
+      if (activityCount >= 5) {
+        level = 3;
+        indicatorContainer.classList.add('level-3');
+      } else if (activityCount >= 2) {
+        level = 2;
+        indicatorContainer.classList.add('level-2');
+      } else {
+        indicatorContainer.classList.add('level-1');
+      }
+      
+      // Add the appropriate number of indicator dots
+      for (let i = 0; i < level; i++) {
+        const dot = document.createElement('span');
+        indicatorContainer.appendChild(dot);
+      }
+      
+      dayElement.appendChild(indicatorContainer);
+    }
+    
+    // Add click event to select date
+    dayElement.addEventListener('click', () => {
+      selectDate(dateStr);
+    });
+    
+    // Add to calendar
+    calendarGrid.appendChild(dayElement);
+  });
+}
+
+// Get dates for calendar grid (including prev/next month days to fill the grid)
+function getCalendarDates(date) {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  
+  // First day of the month
+  const firstDay = new Date(year, month, 1);
+  
+  // Last day of the month
+  const lastDay = new Date(year, month + 1, 0);
+  
+  // Day of week for the first day (0 = Sunday, 6 = Saturday)
+  const firstDayOfWeek = firstDay.getDay();
+  
+  // Total days in month
+  const daysInMonth = lastDay.getDate();
+  
+  // Array to hold all dates to display
+  const dates = [];
+  
+  // Previous month days to fill the first row
+  const daysFromPrevMonth = firstDayOfWeek;
+  const prevMonth = new Date(year, month, 0); // Last day of previous month
+  const prevMonthDays = prevMonth.getDate();
+  
+  for (let i = daysFromPrevMonth - 1; i >= 0; i--) {
+    dates.push(new Date(year, month - 1, prevMonthDays - i));
+  }
+  
+  // Current month days
+  for (let day = 1; day <= daysInMonth; day++) {
+    dates.push(new Date(year, month, day));
+  }
+  
+  // Next month days to complete the grid
+  const totalCells = 42; // 6 rows of 7 days
+  const remainingCells = totalCells - dates.length;
+  
+  for (let day = 1; day <= remainingCells; day++) {
+    dates.push(new Date(year, month + 1, day));
+  }
+  
+  return dates;
+}
+
+// Get a map of days and their activity counts
+function getActivitiesPerDay() {
+  const activitiesPerDay = new Map();
+  
+  // Get all activity dates from localStorage
+  const savedData = localStorage.getItem('timeTracker');
+  if (savedData) {
+    const data = JSON.parse(savedData);
+    
+    data.actions.forEach(action => {
+      const actionDate = new Date(action.start).toISOString().split('T')[0];
+      
+      if (activitiesPerDay.has(actionDate)) {
+        activitiesPerDay.set(actionDate, activitiesPerDay.get(actionDate) + 1);
+      } else {
+        activitiesPerDay.set(actionDate, 1);
+      }
+    });
+  }
+  
+  return activitiesPerDay;
+}
+
+// Select a date from the calendar with animation
+function selectDate(dateStr) {
+  // Update selected date
+  state.selectedDate = dateStr;
+  
+  // Apply day transition animation
+  timeline.classList.add('day-transition-exit');
+  
+  setTimeout(() => {
+    // Reload timeline for the new date
+    loadActions();
+    renderTimeline();
+    updateDateDisplay();
+    toggleActionButtonVisibility();
+    
+    // Update calendar display
+    renderCalendar();
+    
+    // Apply entry animation
+    timeline.classList.remove('day-transition-exit');
+    timeline.classList.add('day-transition-enter');
+    
+    setTimeout(() => {
+      timeline.classList.remove('day-transition-enter');
+    }, 300);
+  }, 200);
 }
 
 // Import data from JSON file
@@ -129,6 +364,11 @@ function importData(e) {
       loadActions();
       renderTimeline();
       
+      // Update calendar if visible
+      if (state.showCalendar) {
+        renderCalendar();
+      }
+      
       // Reset the file input
       e.target.value = '';
       
@@ -178,13 +418,14 @@ function showStatusMessage(statusEl, message, isError) {
   }, 3000);
 }
 
-// Navigate to previous day
+// Navigate to previous day with animation
 function navigateToPreviousDay() {
   const date = new Date(state.selectedDate);
   date.setDate(date.getDate() - 1);
   state.selectedDate = date.toISOString().split('T')[0];
   
-  // Simple animation
+  // Apply exit animation
+  timeline.classList.add('slide-in-right');
   timeline.style.opacity = '0';
   
   setTimeout(() => {
@@ -192,11 +433,27 @@ function navigateToPreviousDay() {
     renderTimeline();
     updateDateDisplay();
     toggleActionButtonVisibility();
+    
+    // Apply entry animation
+    timeline.classList.remove('slide-in-right');
+    timeline.classList.add('slide-in-left');
     timeline.style.opacity = '1';
-  }, 150);
+    
+    // Update calendar if visible
+    if (state.showCalendar) {
+      if (date.getMonth() !== state.calendarDate.getMonth()) {
+        state.calendarDate = new Date(date);
+      }
+      renderCalendar();
+    }
+    
+    setTimeout(() => {
+      timeline.classList.remove('slide-in-left');
+    }, 300);
+  }, 200);
 }
 
-// Navigate to next day
+// Navigate to next day with animation
 function navigateToNextDay() {
   if (nextDateBtn.disabled) return;
   
@@ -204,7 +461,8 @@ function navigateToNextDay() {
   date.setDate(date.getDate() + 1);
   state.selectedDate = date.toISOString().split('T')[0];
   
-  // Simple animation
+  // Apply exit animation
+  timeline.classList.add('slide-in-left');
   timeline.style.opacity = '0';
   
   setTimeout(() => {
@@ -212,8 +470,24 @@ function navigateToNextDay() {
     renderTimeline();
     updateDateDisplay();
     toggleActionButtonVisibility();
+    
+    // Apply entry animation
+    timeline.classList.remove('slide-in-left');
+    timeline.classList.add('slide-in-right');
     timeline.style.opacity = '1';
-  }, 150);
+    
+    // Update calendar if visible
+    if (state.showCalendar) {
+      if (date.getMonth() !== state.calendarDate.getMonth()) {
+        state.calendarDate = new Date(date);
+      }
+      renderCalendar();
+    }
+    
+    setTimeout(() => {
+      timeline.classList.remove('slide-in-right');
+    }, 300);
+  }, 200);
 }
 
 // Update the date display based on the selected date
@@ -310,6 +584,11 @@ function saveState() {
     actions: allActions,
     currentAction: state.currentAction
   }));
+  
+  // Update calendar if visible
+  if (state.showCalendar) {
+    renderCalendar();
+  }
 }
 
 // Check if we need to resume a running action (e.g., after page reload)
@@ -387,6 +666,11 @@ function stopAction() {
   // Render the new activity at the top with animation
   renderTimeline();
   saveState();
+  
+  // Update calendar if visible
+  if (state.showCalendar) {
+    renderCalendar();
+  }
 }
 
 // Start the timer for an action
@@ -410,14 +694,30 @@ function startActionTimer(action) {
   currentActionDuration.textContent = formatDuration(duration);
 }
 
-// Show the current action UI
+// Show the current action UI with animation
 function showCurrentAction() {
   currentAction.classList.remove('hidden');
+  
+  // Force browser to recalculate layout
+  void currentAction.offsetWidth;
+  
+  // Apply animation
+  currentAction.style.animation = 'none';
+  setTimeout(() => {
+    currentAction.style.animation = 'slideInDown 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+  }, 10);
 }
 
-// Hide the current action UI
+// Hide the current action UI with animation
 function hideCurrentAction() {
-  currentAction.classList.add('hidden');
+  currentAction.style.transform = 'translateY(-20px)';
+  currentAction.style.opacity = '0';
+  
+  setTimeout(() => {
+    currentAction.classList.add('hidden');
+    currentAction.style.transform = '';
+    currentAction.style.opacity = '';
+  }, 300);
 }
 
 // Update the action button text
@@ -432,7 +732,7 @@ function updateActionButton(text) {
   }
 }
 
-// Render the timeline of actions
+// Render the timeline of actions with animations
 function renderTimeline() {
   // Clear existing content except empty state
   const children = Array.from(timeline.children);
@@ -445,6 +745,7 @@ function renderTimeline() {
   // Show/hide empty state
   if (state.actions.length === 0) {
     emptyState.classList.remove('hidden');
+    emptyState.style.animation = 'fadeIn 0.3s ease forwards';
   } else {
     emptyState.classList.add('hidden');
     
@@ -453,10 +754,15 @@ function renderTimeline() {
       return new Date(b.start) - new Date(a.start);
     });
     
-    // Render each action
-    sortedActions.forEach(action => {
+    // Render each action with staggered animation
+    sortedActions.forEach((action, index) => {
       const actionElement = createActionElement(action);
       timeline.insertBefore(actionElement, emptyState);
+      
+      // Apply staggered animations
+      setTimeout(() => {
+        actionElement.classList.add('fade-in');
+      }, index * 50);
     });
   }
 }

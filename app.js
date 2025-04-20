@@ -27,10 +27,15 @@ let state = {
   actions: [],
   currentAction: null,
   timerInterval: null,
-  selectedDate: new Date().toISOString().split('T')[0], // Default to today
+  selectedDate: getLocalDateStr(new Date()), // Default to today
   calendarDate: new Date(), // Date to display in calendar
   showCalendar: false // Calendar visibility toggle
 };
+
+// Helper function to get date string in local timezone (YYYY-MM-DD)
+function getLocalDateStr(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
 
 // Initialize the app
 function init() {
@@ -59,7 +64,7 @@ function init() {
   // Add keyboard shortcuts for better UX
   document.addEventListener('keydown', (e) => {
     // Start/stop with Spacebar when no input is focused
-    if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT' && state.selectedDate === new Date().toISOString().split('T')[0]) {
+    if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT' && state.selectedDate === getLocalDateStr(new Date())) {
       e.preventDefault();
       toggleAction();
     }
@@ -158,8 +163,8 @@ function renderCalendar() {
     }
     
     // Check if this is today
-    const dateStr = date.toISOString().split('T')[0];
-    const today = new Date().toISOString().split('T')[0];
+    const dateStr = getLocalDateStr(date);
+    const today = getLocalDateStr(new Date());
     
     if (dateStr === today) {
       dayElement.classList.add('today');
@@ -262,7 +267,7 @@ function getActivitiesPerDay() {
     const data = JSON.parse(savedData);
     
     data.actions.forEach(action => {
-      const actionDate = new Date(action.start).toISOString().split('T')[0];
+      const actionDate = getLocalDateStr(new Date(action.start));
       
       if (activitiesPerDay.has(actionDate)) {
         activitiesPerDay.set(actionDate, activitiesPerDay.get(actionDate) + 1);
@@ -422,7 +427,7 @@ function showStatusMessage(statusEl, message, isError) {
 function navigateToPreviousDay() {
   const date = new Date(state.selectedDate);
   date.setDate(date.getDate() - 1);
-  state.selectedDate = date.toISOString().split('T')[0];
+  state.selectedDate = getLocalDateStr(date);
   
   // Apply exit animation
   timeline.classList.add('slide-in-right');
@@ -459,7 +464,7 @@ function navigateToNextDay() {
   
   const date = new Date(state.selectedDate);
   date.setDate(date.getDate() + 1);
-  state.selectedDate = date.toISOString().split('T')[0];
+  state.selectedDate = getLocalDateStr(date);
   
   // Apply exit animation
   timeline.classList.add('slide-in-left');
@@ -492,7 +497,7 @@ function navigateToNextDay() {
 
 // Update the date display based on the selected date
 function updateDateDisplay() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateStr(new Date());
   const selectedDate = new Date(state.selectedDate);
   
   // Format the date
@@ -504,7 +509,7 @@ function updateDateDisplay() {
   } else {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const yesterdayStr = getLocalDateStr(yesterday);
     
     if (state.selectedDate === yesterdayStr) {
       dateDisplay.textContent = "Yesterday";
@@ -525,7 +530,7 @@ function updateDateDisplay() {
 
 // Show/hide action button based on selected date
 function toggleActionButtonVisibility() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateStr(new Date());
   
   if (state.selectedDate === today) {
     actionControls.classList.remove('hidden');
@@ -549,11 +554,11 @@ function loadActions() {
     
     // Get actions for the selected date
     state.actions = data.actions.filter(action => {
-      return new Date(action.start).toISOString().split('T')[0] === state.selectedDate;
+      return getLocalDateStr(new Date(action.start)) === state.selectedDate;
     });
     
     // Load current action if it exists and we're on today's date
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateStr(new Date());
     if (data.currentAction && state.selectedDate === today) {
       state.currentAction = data.currentAction;
     } else {
@@ -572,7 +577,7 @@ function saveState() {
     const data = JSON.parse(savedData);
     // Keep actions from other dates
     allActions = data.actions.filter(action => {
-      return new Date(action.start).toISOString().split('T')[0] !== state.selectedDate;
+      return getLocalDateStr(new Date(action.start)) !== state.selectedDate;
     });
   }
   
@@ -776,6 +781,18 @@ function createActionElement(action) {
   const start = new Date(action.start);
   const end = new Date(action.end);
   
+  // Format date for display - only show date if not today
+  const today = getLocalDateStr(new Date());
+  const actionDate = getLocalDateStr(new Date(action.start));
+  let dateDisplay = '';
+  
+  if (actionDate !== today) {
+    dateDisplay = start.toLocaleDateString(undefined, { 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  }
+  
   actionElement.innerHTML = `
     <div class="flex justify-between items-start">
       <h3 class="action-title" 
@@ -786,6 +803,7 @@ function createActionElement(action) {
       </button>
     </div>
     <div class="time-display mt-1">
+      ${dateDisplay ? `<span class="date">${dateDisplay}</span> • ` : ''}
       ${formatTime(start)} - ${formatTime(end)}
       <span class="duration ml-2">${formatDuration(action.duration)}</span>
     </div>
@@ -853,7 +871,7 @@ function exportData() {
   const blob = new Blob([dataStr], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateStr(new Date());
   const link = document.createElement('a');
   link.href = url;
   link.download = `timetracker-${today}.json`;
